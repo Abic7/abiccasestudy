@@ -1,0 +1,45 @@
+# ── Protected workflow files ──────────────────────────────────────────────────
+workflows/Fullflow.json
+workflows/node3-prepare-prompts-v4-dynamic.js
+workflows/node3-prepare-prompts-improved.js
+workflows/node3-prepare-prompts-v3-permissive.js
+workflows/node3-parse-goals.js
+workflows/node4-prepare-usage-analysis-v2.js
+workflows/node6-opportunity-mapping-v2.js
+workflows/node8-generate-report.js
+workflows/node1-read-transcripts.json
+workflows/node2-read-customer-data.json
+workflows/node3-goal-extraction.json
+workflows/Fullflow*.json
+
+# ── Prompt tuning logs ────────────────────────────────────────────────────────
+prompt-tuning-log.html
+
+# ── Customer data, transcripts, and pipeline output ───────────────────────────
+AI GTM Engineer Case Study - Data Sets/
+
+# ── Model-specific research ───────────────────────────────────────────────────
+Model-Specific Prompt Optimization for Gemma-4-E4B/
+
+# ── Internal build docs (too much implementation detail) ─────────────────────
+docs/build-output.md
+
+# ── Internal session and build files ─────────────────────────────────────────
+CLAUDE.md
+ASK.txt
+INDEX.md
+Job Description - AI Go-To-Market Engineer.txt
+docs/deploy-output.md
+docs/test-output.md
+
+# ── Resume (personal doc, not part of submission) ────────────────────────────
+*.pdf
+
+# ── n8n / Node / OS ──────────────────────────────────────────────────────────
+node_modules/
+.next/
+*.log
+.DS_Store
+Thumbs.db
+
+

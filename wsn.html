@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What · So What · Now What — AI Account Review Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --color-primary:      #0055FF;
+    --color-primary-dark: #0044CC;
+    --color-background:   #F9F9F8;
+    --color-surface:      #FFFFFF;
+    --color-text:         #0D0D0D;
+    --color-muted:        #8E8E8E;
+    --color-border:       #E2E2E0;
+    --color-accent:       #00E599;
+    --what:    var(--color-text);
+    --sowhat:  #D97706;
+    --nowwhat: var(--color-primary);
+    --success: #16A34A;
+    --font-serif: 'Instrument Serif', serif;
+    --font-sans:  'Switzer', sans-serif;
+    --font-mono:  'Geist Mono', monospace;
+  }
+  .dark {
+    --color-primary:      #4D8FFF;
+    --color-primary-dark: #3A7AE0;
+    --color-background:   #0D0D0D;
+    --color-surface:      #1A1A1A;
+    --color-text:         #F0F0EE;
+    --color-muted:        #6E6E6E;
+    --color-border:       #2A2A2A;
+    --color-accent:       #00E599;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ── PROGRESS BAR / NAV ── */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: color-mix(in srgb, var(--color-background) 90%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 100;
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .nav-name {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .nav-sep { color: var(--color-border); }
+
+  .nav-back {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-back:hover { color: var(--color-text); }
+
+  /* ── PROGRESS STEPS (centred) ── */
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .prog-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: color 0.3s;
+    border-bottom: 2px solid transparent;
+    height: 56px;
+  }
+
+  .prog-step.active-what    { color: var(--color-text);    border-color: var(--color-text);    }
+  .prog-step.active-sowhat  { color: var(--sowhat);        border-color: var(--sowhat);        }
+  .prog-step.active-nowwhat { color: var(--color-primary); border-color: var(--color-primary); }
+  .prog-step.done           { color: var(--success); }
+
+  .prog-num {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+  }
+
+  .prog-divider { width: 32px; height: 1px; background: var(--color-border); }
+
+  /* ── TOPBAR RIGHT ── */
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+
+  .theme-toggle {
+    background: none; border: none; cursor: pointer;
+    color: var(--color-muted); display: flex; align-items: center;
+    transition: color 0.2s; padding: 0;
+  }
+  .theme-toggle:hover { color: var(--color-text); }
+
+  /* ── SLIDES ── */
+  .slides {
+    position: fixed;
+    top: 56px; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 32px;
+    opacity: 0;
+    transform: translateY(24px);
+    pointer-events: none;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    overflow-y: auto;
+  }
+
+  .slide.visible {
+    opacity: 1; transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .slide.exit-up { opacity: 0; transform: translateY(-24px); }
+
+  .slide-inner { max-width: 820px; width: 100%; }
+
+  /* ── SLIDE LABEL ── */
+  .label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.15;
+  }
+  .label-what    { color: var(--color-muted); }
+  .label-sowhat  { color: var(--sowhat); }
+  .label-nowwhat { color: var(--color-primary); }
+
+  /* ── HEADLINE ── */
+  .headline {
+    font-family: var(--font-serif);
+    font-size: clamp(26px, 3.5vw, 44px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+    margin-bottom: 10px;
+  }
+
+  .subline {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--color-muted);
+    margin-bottom: 32px;
+    line-height: 1.7;
+    max-width: 600px;
+  }
+
+  /* ── STAT CARDS ── */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 20px;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .stat-card.in { opacity: 1; transform: translateY(0); }
+
+  .stat-num {
+    font-family: var(--font-serif);
+    font-size: 40px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    margin-bottom: 6px;
+  }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-muted);
+    line-height: 1.5;
+  }
+
+  /* ── PAIN / INFO CARDS ── */
+  .card-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 18px;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .card.in { opacity: 1; transform: translateY(0); }
+
+  .card-title {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-text);
+    margin-bottom: 6px;
+  }
+  .card-body {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-muted);
+    line-height: 1.6;
+  }
+
+  /* ── IMPACT BANNER ── */
+  .impact-banner {
+    background: color-mix(in srgb, var(--sowhat) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sowhat) 20%, transparent);
+    border-radius: 4px;
+    padding: 18px 20px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--color-text);
+    line-height: 1.7;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.5s ease 0.5s, transform 0.5s ease 0.5s;
+  }
+  .impact-banner.in { opacity: 1; transform: translateY(0); }
+
+  /* ── SOLUTION GRID ── */
+  .solution-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 600px) { .solution-grid { grid-template-columns: 1fr; } }
+
+  .sol-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 18px;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .sol-card.in { opacity: 1; transform: translateY(0); }
+
+  .sol-card.local-card  { border-color: color-mix(in srgb, var(--color-primary) 25%, transparent); }
+  .sol-card.cloud-card  { border-color: color-mix(in srgb, var(--color-accent)  25%, transparent); }
+  .sol-card.orch-card   { border-color: var(--color-border); }
+  .sol-card.output-card-s { border-color: color-mix(in srgb, var(--success) 25%, transparent); }
+
+  .sol-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .sol-card.local-card   .sol-title { color: var(--color-primary); }
+  .sol-card.cloud-card   .sol-title { color: var(--color-accent); }
+  .sol-card.orch-card    .sol-title { color: var(--color-muted); }
+  .sol-card.output-card-s .sol-title { color: var(--success); }
+
+  .sol-highlight {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    color: var(--color-text);
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+  .sol-body {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-muted);
+    line-height: 1.6;
+  }
+
+  /* ── CTA ── */
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease 0.7s, transform 0.4s ease 0.7s;
+  }
+  .cta-row.in { opacity: 1; transform: translateY(0); }
+
+  .btn {
+    padding: 10px 22px;
+    border-radius: 4px;
+    border: none;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary { background: var(--color-primary); color: #fff; }
+  .btn-primary:hover { background: var(--color-primary-dark); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-muted);
+    border: 1px solid var(--color-border);
+  }
+  .btn-ghost:hover { color: var(--color-text); border-color: var(--color-text); }
+
+  /* ── NAV ARROWS ── */
+  .nav {
+    position: fixed;
+    bottom: 28px; left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    z-index: 100;
+  }
+
+  .nav-btn {
+    width: 40px; height: 40px;
+    border-radius: 4px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-muted);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .nav-btn:hover:not(:disabled) { color: var(--color-text); border-color: var(--color-text); }
+  .nav-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+  .nav-dots { display: flex; align-items: center; gap: 8px; }
+
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--color-border);
+    transition: background 0.3s, transform 0.3s;
+    cursor: pointer;
+  }
+  .nav-dot.active { transform: scale(1.6); }
+  .nav-dot.d0.active { background: var(--color-text); }
+  .nav-dot.d1.active { background: var(--sowhat); }
+  .nav-dot.d2.active { background: var(--color-primary); }
+
+  @media (max-width: 600px) {
+    .topbar { padding: 0 16px; }
+    .progress { display: none; }
+    .slide { padding: 24px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <a class="nav-name" href="Portfolio Site/out/index.html">Abi C</a>
+    <span class="nav-sep">|</span>
+    <span class="nav-label" style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-muted)">What · So What · Now What</span>
+  </div>
+
+  <div class="progress">
+    <div class="prog-step" id="ps-0" onclick="goTo(0)">
+      <div class="prog-num">1</div>
+      What
+    </div>
+    <div class="prog-divider"></div>
+    <div class="prog-step" id="ps-1" onclick="goTo(1)">
+      <div class="prog-num">2</div>
+      So What
+    </div>
+    <div class="prog-divider"></div>
+    <div class="prog-step" id="ps-2" onclick="goTo(2)">
+      <div class="prog-num">3</div>
+      Now What
+    </div>
+  </div>
+
+  <div class="topbar-right">
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+      <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+      <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+        <path d="M12 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1zm0 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm8-4a1 1 0 1 1 0 2h-1a1 1 0 1 1 0-2h1zM4 13a1 1 0 1 1 0 2H3a1 1 0 1 1 0-2h1zm14.657-6.243a1 1 0 0 1 0 1.414l-.707.707a1 1 0 1 1-1.414-1.414l.707-.707a1 1 0 0 1 1.414 0zM7.05 16.95a1 1 0 0 1 0 1.414l-.707.707a1 1 0 1 1-1.414-1.414l.707-.707a1 1 0 0 1 1.414 0zm11.314 1.414a1 1 0 0 1-1.414 0l-.707-.707a1 1 0 0 1 1.414-1.414l.707.707a1 1 0 0 1 0 1.414zM5.636 6.757a1 1 0 0 1-1.414 0L3.515 6.05A1 1 0 1 1 4.93 4.636l.707.707a1 1 0 0 1 0 1.414zM12 20a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1z"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- SLIDES -->
+<div class="slides">
+
+  <!-- SLIDE 0: WHAT -->
+  <div class="slide" id="slide-0">
+    <div class="slide-inner">
+      <div class="label label-what">① What</div>
+      <h1 class="headline">Account Managers are spending<br>their selling time on admin.</h1>
+      <p class="subline">Before every QBR, an AM must manually review months of calls, emails, and usage dashboards across every account, every quarter.</p>
+
+      <div class="stat-row">
+        <div class="stat-card" data-delay="0">
+          <div class="stat-num" style="color:var(--color-text)"><span class="counter" data-target="60">0</span> min</div>
+          <div class="stat-label">Average manual prep time<br>per QBR</div>
+        </div>
+        <div class="stat-card" data-delay="100">
+          <div class="stat-num" style="color:var(--color-text)">3<span style="font-size:20px;font-family:var(--font-mono)">+ sources</span></div>
+          <div class="stat-label">Calls, emails, usage dashboards<br>reviewed manually</div>
+        </div>
+        <div class="stat-card" data-delay="200">
+          <div class="stat-num" style="color:var(--color-text)"><span class="counter" data-target="60">0</span>k</div>
+          <div class="stat-label">Podium business customers<br>each needing a QBR</div>
+        </div>
+        <div class="stat-card" data-delay="300">
+          <div class="stat-num" style="color:var(--color-text)">4×</div>
+          <div class="stat-label">Per year quarterly cadence<br>per account</div>
+        </div>
+      </div>
+
+      <div class="card-row">
+        <div class="card" data-delay="100">
+          <div class="card-title">Fragmented signals</div>
+          <div class="card-body">Customer goals live across call transcripts, email threads, and Slack but no single source of truth for an AM.</div>
+        </div>
+        <div class="card" data-delay="200">
+          <div class="card-title">Manual comparison</div>
+          <div class="card-body">Matching what a customer said they wanted 3 months ago against what they actually used requires hours of cross-referencing.</div>
+        </div>
+        <div class="card" data-delay="300">
+          <div class="card-title">Inconsistent output</div>
+          <div class="card-body">Every AM preps differently. QBR quality varies by person, mood, and how much time they had and not by account needs.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 1: SO WHAT -->
+  <div class="slide" id="slide-1">
+    <div class="slide-inner">
+      <div class="label label-sowhat">② So What</div>
+      <h1 class="headline">This isn't a time problem.<br>It's a revenue problem.</h1>
+      <p class="subline">Every hour spent on prep is an hour not spent selling. Every missed upsell signal in a transcript is expansion revenue left uncaptured.</p>
+
+      <div class="stat-row">
+        <div class="stat-card" data-delay="0">
+          <div class="stat-num" style="color:var(--sowhat)">~<span class="counter" data-target="200">0</span>h</div>
+          <div class="stat-label">Prep hours lost per AM<br>per year (40 accounts × 4 QBRs)</div>
+        </div>
+        <div class="stat-card" data-delay="100">
+          <div class="stat-num" style="color:var(--sowhat)"><span class="counter" data-target="3">0</span> gaps</div>
+          <div class="stat-label">Avg. underused features per account<br>each tied to a stated customer goal</div>
+        </div>
+        <div class="stat-card" data-delay="200">
+          <div class="stat-num" style="color:var(--sowhat)">$</div>
+          <div class="stat-label">Each missed gap = a missed<br>expansion conversation</div>
+        </div>
+      </div>
+
+      <div class="card-row">
+        <div class="card" data-delay="100">
+          <div class="card-title" style="color:var(--sowhat)">Missed upsells</div>
+          <div class="card-body">If an AM doesn't notice that Webchat is unused and the customer's goal is faster lead response — that's a direct upsell opportunity they walked past.</div>
+        </div>
+        <div class="card" data-delay="200">
+          <div class="card-title" style="color:var(--sowhat)">Churn risk</div>
+          <div class="card-body">Customers who aren't using what they're paying for are at higher churn risk. Inconsistent QBRs miss this signal entirely.</div>
+        </div>
+        <div class="card" data-delay="300">
+          <div class="card-title" style="color:var(--sowhat)">Can't scale</div>
+          <div class="card-body">As Podium grows to more AMs and more accounts, a manual QBR process compounds. The problem doesn't stay constant, it multiplies.</div>
+        </div>
+      </div>
+
+      <div class="impact-banner" id="impact-banner">
+        <strong style="color:var(--sowhat)">The core insight:</strong> The gap between what a customer said they wanted and what they're actually using is the exact shape of an upsell opportunity. That gap exists in the data, it just hasn't been read yet.
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: NOW WHAT -->
+  <div class="slide" id="slide-2">
+    <div class="slide-inner">
+      <div class="label label-nowwhat">③ Now What</div>
+      <h1 class="headline">I built an agent that does<br>the prep work in ~11 seconds.</h1>
+      <p class="subline">A hybrid AI pipeline that reads every transcript, compares it against usage data, detects the gaps, and hands the AM a brief before they open their calendar.</p>
+
+      <div class="solution-grid">
+        <div class="sol-card local-card" data-delay="0">
+          <div class="sol-title">⚡ Local · Gemma-4-E4B</div>
+          <div class="sol-highlight">Free · On-device</div>
+          <div class="sol-body">Goal extraction, usage analysis, gap detection. Token-heavy work stays local, no data egress, zero API cost.</div>
+        </div>
+        <div class="sol-card cloud-card" data-delay="100">
+          <div class="sol-title">☁ Cloud · Claude Haiku 4.5</div>
+          <div class="sol-highlight">Strategic · Quality</div>
+          <div class="sol-body">Opportunity mapping and QBR narrative. Frontier reasoning only where it changes the output quality.</div>
+        </div>
+        <div class="sol-card orch-card" data-delay="200">
+          <div class="sol-title">🔄 Orchestration · n8n</div>
+          <div class="sol-highlight">Visual · Explainable</div>
+          <div class="sol-body">Every step is a node. AMs and managers can see exactly what the pipeline does — no black box.</div>
+        </div>
+        <div class="sol-card output-card-s" data-delay="300">
+          <div class="sol-title">✓ Output · QBR Brief</div>
+          <div class="sol-highlight">~4s · AM-ready</div>
+          <div class="sol-body">Goals, adoption gaps, upsell opportunities, talking points. Replaces 45–60 minutes of manual prep.</div>
+        </div>
+      </div>
+
+      <div class="cta-row" id="cta-row">
+        <a href="architecture.html" class="btn btn-primary">View Pipeline Architecture →</a>
+        <button class="btn btn-ghost" onclick="goTo(0)">↺ Review from start</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="nav-btn" id="nav-prev" onclick="prev()" disabled>←</button>
+  <div class="nav-dots">
+    <div class="nav-dot d0 active" onclick="goTo(0)"></div>
+    <div class="nav-dot d1" onclick="goTo(1)"></div>
+    <div class="nav-dot d2" onclick="goTo(2)"></div>
+  </div>
+  <button class="nav-btn" id="nav-next" onclick="next()">→</button>
+</div>
+
+<script>
+  // ── THEME ──
+  (function() {
+    const stored = localStorage.getItem('theme');
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && systemDark)) {
+      document.documentElement.classList.add('dark');
+      document.getElementById('icon-moon').style.display = 'none';
+      document.getElementById('icon-sun').style.display = '';
+    }
+  })();
+
+  document.getElementById('theme-toggle').addEventListener('click', function() {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    document.getElementById('icon-moon').style.display = isDark ? 'none' : '';
+    document.getElementById('icon-sun').style.display  = isDark ? '' : 'none';
+  });
+
+  // ── SLIDES ──
+  let current = 0;
+  const total = 3;
+  const PROG_CLASSES = ['active-what', 'active-sowhat', 'active-nowwhat'];
+
+  function goTo(idx) {
+    const prevSlide = document.getElementById('slide-' + current);
+    prevSlide.classList.remove('visible');
+    if (idx > current) prevSlide.classList.add('exit-up');
+    current = idx;
+    setTimeout(() => {
+      document.querySelectorAll('.slide').forEach(s => s.classList.remove('exit-up'));
+    }, 600);
+    document.getElementById('slide-' + current).classList.add('visible');
+    updateNav();
+    animateSlide(current);
+  }
+
+  function next() { if (current < total - 1) goTo(current + 1); }
+  function prev() { if (current > 0) goTo(current - 1); }
+
+  function updateNav() {
+    document.getElementById('nav-prev').disabled = current === 0;
+    document.getElementById('nav-next').disabled = current === total - 1;
+    document.querySelectorAll('.prog-step').forEach((el, i) => {
+      el.className = 'prog-step';
+      if (i === current) el.classList.add(PROG_CLASSES[i]);
+      if (i < current)  el.classList.add('done');
+    });
+    document.querySelectorAll('.nav-dot').forEach((el, i) => {
+      el.classList.toggle('active', i === current);
+    });
+  }
+
+  function animateCounter(el) {
+    const target = parseInt(el.dataset.target);
+    const start = performance.now();
+    const duration = 900;
+    function tick(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(ease * target);
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function animateSlide(idx) {
+    const slide = document.getElementById('slide-' + idx);
+    slide.querySelectorAll('.stat-card').forEach(card => {
+      card.classList.remove('in');
+      setTimeout(() => {
+        card.classList.add('in');
+        const counter = card.querySelector('.counter');
+        if (counter) animateCounter(counter);
+      }, 200 + parseInt(card.dataset.delay || 0));
+    });
+    slide.querySelectorAll('.card, .sol-card').forEach(card => {
+      card.classList.remove('in');
+      setTimeout(() => card.classList.add('in'), 300 + parseInt(card.dataset.delay || 0));
+    });
+    const banner = slide.querySelector('.impact-banner');
+    if (banner) { banner.classList.remove('in'); setTimeout(() => banner.classList.add('in'), 200); }
+    const cta = slide.querySelector('.cta-row');
+    if (cta) { cta.classList.remove('in'); setTimeout(() => cta.classList.add('in'), 200); }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next();
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   prev();
+  });
+
+  document.getElementById('slide-0').classList.add('visible');
+  updateNav();
+  animateSlide(0);
+</script>
+</body>
+</html>

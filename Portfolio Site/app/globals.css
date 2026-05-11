@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+
+/* Switzer via Fontshare */
+@import url('https://api.fontshare.com/v2/css?f[]=switzer@400,500&display=swap');
+
+/* Geist Mono via Next.js local font or CDN fallback */
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap');
+
+:root {
+  --color-primary: #0055FF;
+  --color-primary-dark: #0044CC;
+  --color-background: #F9F9F8;
+  --color-surface: #FFFFFF;
+  --color-text: #0D0D0D;
+  --color-muted: #8E8E8E;
+  --color-border: #E2E2E0;
+  --color-accent: #00E599;
+  --font-serif: 'Instrument Serif', serif;
+  --font-sans: 'Switzer', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+  --radius: 4px;
+  --spacing-grid: 16px;
+}
+
+.dark {
+  --color-primary: #4D8FFF;
+  --color-primary-dark: #3A7AE0;
+  --color-background: #0D0D0D;
+  --color-surface: #1A1A1A;
+  --color-text: #F0F0EE;
+  --color-muted: #6E6E6E;
+  --color-border: #2A2A2A;
+  --color-accent: #00E599;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Count-up animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+/* Pulsing status dot */
+@keyframes pulse-dot {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 85, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(0, 85, 255, 0);
+  }
+}
+
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
